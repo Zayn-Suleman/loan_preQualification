@@ -1,0 +1,64 @@
+[tool.poetry]
+name = "loan-prequalification-service"
+version = "1.0.0"
+description = "Event-driven loan prequalification microservices system"
+authors = ["Architecture Team"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.104.0"
+uvicorn = {extras = ["standard"], version = "^0.24.0"}
+pydantic = "^2.0.0"
+pydantic-settings = "^2.0.0"
+sqlalchemy = "^2.0.0"
+psycopg2-binary = "^2.9.9"
+alembic = "^1.12.0"
+confluent-kafka = "^2.3.0"
+cryptography = "^41.0.0"
+prometheus-client = "^0.19.0"
+python-json-logger = "^2.0.7"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+pytest-asyncio = "^0.21.0"
+pytest-mock = "^3.12.0"
+httpx = "^0.25.0"
+ruff = "^0.1.0"
+black = "^23.10.0"
+pre-commit = "^3.5.0"
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "N", "W", "UP", "B", "A", "C4", "DTZ", "T10", "ICN", "PIE", "PYI", "PT", "Q", "RSE", "RET", "SIM", "TID", "ARG", "PLE", "PLR", "PLW"]
+ignore = ["E501", "PLR0913"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.pytest.ini_options]
+testpaths = ["services"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=services --cov-report=html --cov-report=term-missing"
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+omit = ["*/tests/*", "*/__init__.py", "*/migrations/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
