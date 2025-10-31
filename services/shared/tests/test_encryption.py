@@ -19,7 +19,7 @@ class TestEncryptionService:
     def encryption_service(self):
         """Create EncryptionService with test key."""
         # 32-byte key for AES-256 (base64 encoded)
-        test_key = base64.b64encode(b"test_encryption_key_32_bytes!").decode()
+        test_key = base64.b64encode(b"test_key_for_encryption_32bytezz").decode()
         return EncryptionService(encryption_key=test_key)
 
     def test_encrypt_pan_returns_bytes(self, encryption_service):
