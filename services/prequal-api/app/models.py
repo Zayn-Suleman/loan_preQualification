@@ -6,13 +6,17 @@ This module defines the data models for:
 - Application status response
 - Error responses
 """
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
+
+# Constants
+MIN_AGE = 18
+MAX_AGE = 100
 
 
 class ApplicationStatus(str, Enum):
@@ -126,13 +130,13 @@ class ApplicationCreateRequest(BaseModel):
     @classmethod
     def validate_age(cls, v: date) -> date:
         """Validate applicant is at least 18 years old."""
-        today = date.today()
+        today = datetime.now(tz=timezone.utc).date()
         age = today.year - v.year - ((today.month, today.day) < (v.month, v.day))
 
-        if age < 18:
+        if age < MIN_AGE:
             raise ValueError("Applicant must be at least 18 years old")
 
-        if age > 100:
+        if age > MAX_AGE:
             raise ValueError("Invalid date of birth")
 
         return v
@@ -159,18 +163,14 @@ class ApplicationCreateResponse(BaseModel):
     Returns 202 Accepted with application_id.
     """
 
-    application_id: UUID = Field(
-        ..., description="Unique identifier for the application"
-    )
+    application_id: UUID = Field(..., description="Unique identifier for the application")
     status: ApplicationStatus = Field(
         ..., description="Current application status (always PENDING)"
     )
     message: str = Field(
         ...,
         description="Human-readable message",
-        json_schema_extra={
-            "example": "Application submitted successfully and is being processed"
-        },
+        json_schema_extra={"example": "Application submitted successfully and is being processed"},
     )
     created_at: datetime = Field(..., description="Timestamp of application creation")
 
@@ -193,9 +193,7 @@ class ApplicationStatusResponse(BaseModel):
     PAN is masked for security (XXXXX1234F).
     """
 
-    application_id: UUID = Field(
-        ..., description="Unique identifier for the application"
-    )
+    application_id: UUID = Field(..., description="Unique identifier for the application")
     status: ApplicationStatus = Field(..., description="Current application status")
     pan_number_masked: str = Field(
         ...,
@@ -207,18 +205,12 @@ class ApplicationStatusResponse(BaseModel):
     requested_amount: Decimal = Field(..., description="Requested loan amount")
 
     # Credit information (populated after credit-service processing)
-    credit_score: Optional[int] = Field(
-        None, description="CIBIL credit score (300-900)"
-    )
+    credit_score: Optional[int] = Field(None, description="CIBIL credit score (300-900)")
     annual_income: Optional[Decimal] = Field(None, description="Annual income in INR")
-    existing_loans_count: Optional[int] = Field(
-        None, description="Number of existing loans"
-    )
+    existing_loans_count: Optional[int] = Field(None, description="Number of existing loans")
 
     # Decision information (populated after decision-service processing)
-    decision_reason: Optional[str] = Field(
-        None, description="Reason for approval/rejection"
-    )
+    decision_reason: Optional[str] = Field(None, description="Reason for approval/rejection")
     max_approved_amount: Optional[Decimal] = Field(
         None, description="Maximum approved amount (if PRE_APPROVED)"
     )
@@ -253,12 +245,8 @@ class ErrorResponse(BaseModel):
 
     error_code: ErrorCode = Field(..., description="Machine-readable error code")
     message: str = Field(..., description="Human-readable error message")
-    detail: Optional[str] = Field(
-        None, description="Additional error details (for debugging)"
-    )
-    timestamp: datetime = Field(
-        default_factory=datetime.utcnow, description="Error timestamp"
-    )
+    detail: Optional[str] = Field(None, description="Additional error details (for debugging)")
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Error timestamp")
 
     class Config:
         """Pydantic config."""
@@ -284,9 +272,7 @@ class HealthResponse(BaseModel):
     class Config:
         """Pydantic config."""
 
-        json_schema_extra = {
-            "example": {"status": "healthy", "timestamp": "2024-01-15T10:30:00Z"}
-        }
+        json_schema_extra = {"example": {"status": "healthy", "timestamp": "2024-01-15T10:30:00Z"}}
 
 
 class ReadinessResponse(BaseModel):

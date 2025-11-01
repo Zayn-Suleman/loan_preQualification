@@ -6,20 +6,17 @@ This module implements the data access layer with support for:
 - Transactional updates
 """
 import logging
-from datetime import datetime
-from typing import Optional, Dict, Any
-from uuid import UUID
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
 
 logger = logging.getLogger(__name__)
 
 
-class OptimisticLockException(Exception):
-    """Raised when optimistic lock conflict occurs."""
-    pass
+class OptimisticLockError(Exception):
+    """Exception raised when optimistic lock fails (version mismatch)."""
 
 
 class ApplicationRepository:
@@ -43,7 +40,8 @@ class ApplicationRepository:
             Dict with application data or None if not found
         """
         result = self.db.execute(
-            text("""
+            text(
+                """
                 SELECT
                     application_id,
                     first_name,
@@ -57,8 +55,9 @@ class ApplicationRepository:
                     updated_at
                 FROM applications
                 WHERE application_id = :app_id
-            """),
-            {"app_id": application_id}
+            """
+            ),
+            {"app_id": application_id},
         )
 
         row = result.fetchone()
@@ -85,7 +84,7 @@ class ApplicationRepository:
         cibil_score: int,
         decision_reason: str,
         max_approved_amount: Optional[float],
-        expected_version: int
+        expected_version: int,
     ) -> bool:
         """Update application status with optimistic locking.
 
@@ -104,11 +103,12 @@ class ApplicationRepository:
             bool: True if update successful, False if version conflict
 
         Raises:
-            OptimisticLockException: If version conflict detected
+            OptimisticLockError: If version conflict detected
         """
         try:
             result = self.db.execute(
-                text("""
+                text(
+                    """
                     UPDATE applications
                     SET
                         status = :status,
@@ -120,7 +120,8 @@ class ApplicationRepository:
                     WHERE
                         application_id = :app_id
                         AND version = :expected_version
-                """),
+                """
+                ),
                 {
                     "app_id": application_id,
                     "status": status,
@@ -128,8 +129,8 @@ class ApplicationRepository:
                     "decision_reason": decision_reason,
                     "max_approved_amount": max_approved_amount,
                     "expected_version": expected_version,
-                    "updated_at": datetime.utcnow()
-                }
+                    "updated_at": datetime.now(tz=timezone.utc),
+                },
             )
 
             rows_affected = result.rowcount
@@ -140,9 +141,7 @@ class ApplicationRepository:
                     f"Optimistic lock conflict for application {application_id}. "
                     f"Expected version: {expected_version}"
                 )
-                raise OptimisticLockException(
-                    f"Version conflict for application {application_id}"
-                )
+                raise OptimisticLockError(f"Version conflict for application {application_id}")
 
             logger.info(
                 f"Updated application {application_id} to status {status} "
@@ -150,7 +149,7 @@ class ApplicationRepository:
             )
             return True
 
-        except OptimisticLockException:
+        except OptimisticLockError:
             raise
         except Exception as e:
             logger.error(f"Error updating application status: {e}", exc_info=True)
@@ -163,7 +162,7 @@ class ApplicationRepository:
         cibil_score: int,
         decision_reason: str,
         max_approved_amount: Optional[float],
-        max_retries: int = 3
+        max_retries: int = 3,
     ) -> bool:
         """Update application with automatic retry on version conflicts.
 
@@ -184,7 +183,7 @@ class ApplicationRepository:
             bool: True if update successful
 
         Raises:
-            OptimisticLockException: If max retries exceeded
+            OptimisticLockError: If max retries exceeded
             ValueError: If application not found
         """
         for attempt in range(max_retries):
@@ -209,7 +208,7 @@ class ApplicationRepository:
                     cibil_score=cibil_score,
                     decision_reason=decision_reason,
                     max_approved_amount=max_approved_amount,
-                    expected_version=current_version
+                    expected_version=current_version,
                 )
 
                 # Success!
@@ -219,17 +218,13 @@ class ApplicationRepository:
                 )
                 return True
 
-            except OptimisticLockException:
+            except OptimisticLockError:
                 if attempt < max_retries - 1:
-                    logger.info(
-                        f"Optimistic lock conflict on attempt {attempt + 1}, retrying..."
-                    )
+                    logger.info(f"Optimistic lock conflict on attempt {attempt + 1}, retrying...")
                     continue
-                else:
-                    logger.error(
-                        f"Max retries ({max_retries}) exceeded for application "
-                        f"{application_id}"
-                    )
-                    raise
+                logger.error(
+                    f"Max retries ({max_retries}) exceeded for application " f"{application_id}"
+                )
+                raise
 
         return False

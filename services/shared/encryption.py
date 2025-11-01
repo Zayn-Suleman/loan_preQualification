@@ -11,10 +11,14 @@ Provides methods for:
 import base64
 import hashlib
 import os
+
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 
 class EncryptionService:
+    """Service for encrypting and decrypting sensitive data."""
+
+    KEY_SIZE = 32  # AES-256 requires 32-byte key
     """
     Service for encrypting/decrypting PAN numbers using AES-256-GCM.
 
@@ -38,9 +42,9 @@ class EncryptionService:
         try:
             key_bytes = base64.b64decode(encryption_key)
         except Exception as e:
-            raise ValueError(f"Invalid base64 encryption key: {e}")
+            raise ValueError(f"Invalid base64 encryption key: {e}") from e
 
-        if len(key_bytes) != 32:
+        if len(key_bytes) != self.KEY_SIZE:
             raise ValueError(
                 f"Encryption key must be 32 bytes (256 bits), got {len(key_bytes)} bytes"
             )

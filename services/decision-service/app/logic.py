@@ -3,12 +3,13 @@
 This module implements the business rules for approving or rejecting
 loan applications based on CIBIL score and income-to-loan ratio.
 """
-from typing import Dict, Any, Tuple
 from enum import Enum
+from typing import Any, Dict, Tuple
 
 
 class DecisionStatus(Enum):
     """Loan application decision statuses."""
+
     PRE_APPROVED = "PRE_APPROVED"
     REJECTED = "REJECTED"
     MANUAL_REVIEW = "MANUAL_REVIEW"
@@ -23,9 +24,7 @@ class DecisionService:
 
     @classmethod
     def evaluate(
-        cls,
-        application_data: Dict[str, Any],
-        cibil_score: int
+        cls, application_data: Dict[str, Any], cibil_score: int
     ) -> Tuple[DecisionStatus, str]:
         """Evaluate loan application and make decision.
 
@@ -77,11 +76,7 @@ class DecisionService:
         return DecisionStatus.MANUAL_REVIEW, reason
 
     @classmethod
-    def calculate_max_approved_amount(
-        cls,
-        monthly_income: float,
-        cibil_score: int
-    ) -> float:
+    def calculate_max_approved_amount(cls, monthly_income: float, cibil_score: int) -> float:
         """Calculate maximum loan amount that can be approved.
 
         Uses same formula: monthly_income * 48 months
@@ -97,16 +92,10 @@ class DecisionService:
             return 0.0
 
         # Maximum loan = monthly income * 48 months
-        max_amount = monthly_income * cls.LOAN_TERM_MONTHS
-
-        return max_amount
+        return monthly_income * cls.LOAN_TERM_MONTHS
 
     @classmethod
-    def make_decision(
-        cls,
-        application_data: Dict[str, Any],
-        cibil_score: int
-    ) -> Dict[str, Any]:
+    def make_decision(cls, application_data: Dict[str, Any], cibil_score: int) -> Dict[str, Any]:
         """Make complete decision including status and max approved amount.
 
         Args:
@@ -131,5 +120,7 @@ class DecisionService:
             "status": decision_status.value,
             "decision_reason": decision_reason,
             "cibil_score": cibil_score,
-            "max_approved_amount": max_approved if decision_status != DecisionStatus.REJECTED else None,
+            "max_approved_amount": max_approved
+            if decision_status != DecisionStatus.REJECTED
+            else None,
         }

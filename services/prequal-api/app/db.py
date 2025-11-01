@@ -6,8 +6,6 @@ This module defines the SQLAlchemy ORM models for:
 - processed_messages: Idempotency tracking for Kafka consumers
 - outbox_events: Transactional outbox for reliable message publishing
 """
-from datetime import datetime
-from typing import Optional
 from uuid import uuid4
 
 from sqlalchemy import (
@@ -29,9 +27,7 @@ from sqlalchemy.orm import DeclarativeBase, relationship
 
 
 class Base(DeclarativeBase):
-    """Base class for all database models."""
-
-    pass
+    """Base class for SQLAlchemy models."""
 
 
 class Application(Base):
@@ -85,12 +81,12 @@ class Application(Base):
 
     # Timestamps
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.now())
-    updated_at = Column(
-        TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now()
-    )
+    updated_at = Column(TIMESTAMP, nullable=False, server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    audit_logs = relationship("AuditLog", back_populates="application", cascade="all, delete-orphan")
+    audit_logs = relationship(
+        "AuditLog", back_populates="application", cascade="all, delete-orphan"
+    )
 
     # Indexes defined at class level
     __table_args__ = (
@@ -118,7 +114,9 @@ class AuditLog(Base):
     )
 
     # Audit metadata
-    service_name = Column(String(50), nullable=False, comment="prequal-api | credit-service | decision-service")
+    service_name = Column(
+        String(50), nullable=False, comment="prequal-api | credit-service | decision-service"
+    )
     operation = Column(String(50), nullable=False, comment="ENCRYPT | DECRYPT | MASK")
     user_id = Column(String(100), nullable=True, comment="For future user authentication")
 

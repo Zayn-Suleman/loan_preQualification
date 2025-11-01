@@ -1,8 +1,8 @@
 Command name: development-backend-python-fastapi
 
-Command usage: 
-/clear 
-/development-backend-python-fastapi Tech design is in tech-design.md 
+Command usage:
+/clear
+/development-backend-python-fastapi Tech design is in tech-design.md
 /cost
 
 Command details:
@@ -73,7 +73,7 @@ decision-service (Kafka Consumer)
         │
         ▼
    Database (PostgreSQL)
-   
+
 ```
 
 

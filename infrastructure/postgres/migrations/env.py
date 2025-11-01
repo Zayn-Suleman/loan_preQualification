@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../.
 # Note: importing with sys.path manipulation because prequal-api uses hyphens
 import importlib.util
 import sys
+
 db_path = os.path.join(os.path.dirname(__file__), "../../../services/prequal-api/app/db.py")
 spec = importlib.util.spec_from_file_location("db", db_path)
 db_module = importlib.util.module_from_spec(spec)

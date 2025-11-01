@@ -8,14 +8,25 @@ Following tech-design.md v2.0 requirements:
 - Base64 encoding for Kafka messages
 """
 import base64
+import sys
+from pathlib import Path
+
 import pytest
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent.parent
+sys.path.insert(0, str(project_root))
+
 from services.shared.encryption import EncryptionService
+
+# Test constants
+IV_SIZE = 64
 
 
 class TestEncryptionService:
     """Test suite for EncryptionService following TDD methodology."""
 
-    @pytest.fixture
+    @pytest.fixture()
     def encryption_service(self):
         """Create EncryptionService with test key."""
         # 32-byte key for AES-256 (base64 encoded)
@@ -61,7 +72,7 @@ class TestEncryptionService:
         hash1 = encryption_service.hash_pan(pan)
         hash2 = encryption_service.hash_pan(pan)
         assert hash1 == hash2
-        assert len(hash1) == 64  # SHA-256 hex digest is 64 characters
+        assert len(hash1) == IV_SIZE  # SHA-256 hex digest is 64 characters
 
     def test_hash_different_pans_produce_different_hashes(self, encryption_service):
         """Test that different PANs produce different hashes."""
@@ -88,12 +99,12 @@ class TestEncryptionService:
 
     def test_decrypt_invalid_data_raises_exception(self, encryption_service):
         """Test that decrypting invalid data raises exception."""
-        with pytest.raises(Exception):  # Should raise decryption error
+        with pytest.raises(Exception, match=".*"):  # Should raise decryption error
             encryption_service.decrypt_pan(b"invalid_encrypted_data")
 
     def test_invalid_key_length_raises_exception(self):
         """Test that invalid key length raises exception."""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=".*"):
             EncryptionService(encryption_key="short_key")
 
     def test_empty_pan_encryption_decryption(self, encryption_service):

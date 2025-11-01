@@ -16,8 +16,7 @@ from .consumer import DecisionServiceConsumer, Settings
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,7 @@ def main():
         sys.exit(1)
 
     # Setup signal handlers for graceful shutdown
-    def signal_handler(sig, frame):
+    def signal_handler(sig, _frame):
         logger.info(f"Received signal {sig}, shutting down...")
         consumer.stop()
         sys.exit(0)

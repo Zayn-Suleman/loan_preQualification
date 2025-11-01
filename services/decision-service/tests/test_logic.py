@@ -7,17 +7,23 @@ Tests the DecisionService class to ensure:
 - All three decision outcomes work (PRE_APPROVED, REJECTED, MANUAL_REVIEW)
 - Edge cases are handled
 """
-import pytest
-from uuid import uuid4
-
 import sys
 from pathlib import Path
+from uuid import uuid4
 
 # Add parent directories to path
 service_root = Path(__file__).parent.parent
 sys.path.insert(0, str(service_root))
 
 from app.logic import DecisionService, DecisionStatus
+
+# Test constants
+MAX_LOAN_PERSONAL = 2400000.0
+MAX_LOAN_NO_INCOME = 0.0
+GOOD_CIBIL = 780
+FAIR_CIBIL = 620
+BORDERLINE_CIBIL = 710
+POOR_CIBIL_MULTIPLIER = 50
 
 
 class TestDecisionService:
@@ -57,7 +63,7 @@ class TestDecisionService:
         application_data = {
             "application_id": str(uuid4()),
             "monthly_income_inr": 50000,  # 50k per month
-            "loan_amount_inr": 2000000,    # 20 lakh loan
+            "loan_amount_inr": 2000000,  # 20 lakh loan
         }
         # Required monthly income = 2000000 / 48 = 41,666.67
         # 50,000 > 41,666.67 → PRE_APPROVED
@@ -87,7 +93,7 @@ class TestDecisionService:
         application_data = {
             "application_id": str(uuid4()),
             "monthly_income_inr": 40000,  # 40k per month
-            "loan_amount_inr": 2000000,   # 20 lakh loan
+            "loan_amount_inr": 2000000,  # 20 lakh loan
         }
         # Required monthly income = 2000000 / 48 = 41,666.67
         # 40,000 < 41,666.67 → MANUAL_REVIEW
@@ -135,24 +141,20 @@ class TestDecisionService:
         monthly_income = 50000
         cibil_score = 750
 
-        max_amount = DecisionService.calculate_max_approved_amount(
-            monthly_income, cibil_score
-        )
+        max_amount = DecisionService.calculate_max_approved_amount(monthly_income, cibil_score)
 
         # Max = 50000 * 48 = 2,400,000
-        assert max_amount == 2400000.0
+        assert max_amount == MAX_LOAN_PERSONAL
 
     def test_calculate_max_approved_amount_rejected(self):
         """Test max approved amount for rejected (below threshold)."""
         monthly_income = 50000
         cibil_score = 600  # Below 650
 
-        max_amount = DecisionService.calculate_max_approved_amount(
-            monthly_income, cibil_score
-        )
+        max_amount = DecisionService.calculate_max_approved_amount(monthly_income, cibil_score)
 
         # Should return 0 for rejected
-        assert max_amount == 0.0
+        assert max_amount == MAX_LOAN_NO_INCOME
 
     def test_make_decision_pre_approved(self):
         """Test complete decision for PRE_APPROVED case."""
@@ -208,7 +210,7 @@ class TestDecisionService:
         application_data = {
             "application_id": str(uuid4()),
             "monthly_income_inr": 200000,  # 2 lakh per month
-            "loan_amount_inr": 8000000,    # 80 lakh loan
+            "loan_amount_inr": 8000000,  # 80 lakh loan
         }
         # Required: 8000000 / 48 = 166,666.67
         # 200,000 > 166,666.67 → PRE_APPROVED

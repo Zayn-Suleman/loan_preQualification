@@ -6,9 +6,9 @@ This module implements the ApplicationService with:
 - Duplicate detection via PAN hash
 - Audit logging for PAN access
 """
-import json
-from datetime import datetime
-from typing import Optional
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
@@ -16,12 +16,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 # Add project root to path for imports
-import sys
-from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from services.shared.encryption import EncryptionService
+
 from .db import Application, AuditLog, OutboxEvent
 from .models import (
     ApplicationCreateRequest,
@@ -29,6 +28,9 @@ from .models import (
     ApplicationStatus,
     ApplicationStatusResponse,
 )
+
+# Constants
+PAN_LENGTH = 10
 
 
 class ApplicationService:
@@ -51,9 +53,7 @@ class ApplicationService:
         self.db = db_session
         self.encryption = encryption_service
 
-    def create_application(
-        self, request: ApplicationCreateRequest
-    ) -> ApplicationCreateResponse:
+    def create_application(self, request: ApplicationCreateRequest) -> ApplicationCreateResponse:
         """Create a new loan application with transactional outbox.
 
         Flow:
@@ -128,7 +128,7 @@ class ApplicationService:
             "phone_number": request.phone_number,
             "requested_amount": float(request.requested_amount),
             "status": ApplicationStatus.PENDING.value,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": datetime.now(tz=timezone.utc).isoformat(),
         }
 
         outbox_event = OutboxEvent(
@@ -146,10 +146,10 @@ class ApplicationService:
             self.db.commit()
         except IntegrityError as e:
             self.db.rollback()
-            raise ValueError(f"Database integrity error: {str(e)}")
+            raise ValueError(f"Database integrity error: {str(e)}") from e
         except Exception as e:
             self.db.rollback()
-            raise Exception(f"Failed to create application: {str(e)}")
+            raise Exception(f"Failed to create application: {str(e)}") from e
 
         # Return response
         return ApplicationCreateResponse(
@@ -219,6 +219,6 @@ class ApplicationService:
         Returns:
             Masked PAN (e.g., "XXXXX1234F")
         """
-        if len(pan_plaintext) != 10:
+        if len(pan_plaintext) != PAN_LENGTH:
             raise ValueError("Invalid PAN length")
         return "XXXXX" + pan_plaintext[-5:]

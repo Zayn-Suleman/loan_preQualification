@@ -135,11 +135,11 @@ jobs:
 
     - name: Test Docker Compose Configuration
       run: |
-        docker-compose config
+        docker compose config
 
     - name: Build Infrastructure Services
       run: |
-        docker-compose build --no-cache
+        docker compose build --no-cache
       continue-on-error: true
 
   summary:

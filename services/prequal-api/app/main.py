@@ -7,9 +7,11 @@ This module implements the REST API with:
 - GET /ready - Readiness probe
 - GET /metrics - Prometheus metrics
 """
-import os
+# Add project root to path for imports
+import sys
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
@@ -20,13 +22,11 @@ from pydantic_settings import BaseSettings
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
-# Add project root to path for imports
-import sys
-from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from services.shared.encryption import EncryptionService
+
 from .models import (
     ApplicationCreateRequest,
     ApplicationCreateResponse,
@@ -148,7 +148,7 @@ async def lifespan(app: FastAPI):
         try:
             await publisher_task
         except asyncio.CancelledError:
-            pass
+            return
 
     engine.dispose()
     print("Shutdown complete")
@@ -214,39 +214,33 @@ async def create_application(request: ApplicationCreateRequest) -> ApplicationCr
         with REQUEST_DURATION.labels(method="POST", endpoint="/applications").time():
             response = service.create_application(request)
             APPLICATIONS_CREATED.inc()
-            REQUESTS_TOTAL.labels(
-                method="POST", endpoint="/applications", status="202"
-            ).inc()
+            REQUESTS_TOTAL.labels(method="POST", endpoint="/applications", status="202").inc()
             return response
 
     except ValueError as e:
         # Duplicate PAN or validation error
         APPLICATIONS_REJECTED.labels(reason="duplicate_pan").inc()
-        REQUESTS_TOTAL.labels(
-            method="POST", endpoint="/applications", status="400"
-        ).inc()
+        REQUESTS_TOTAL.labels(method="POST", endpoint="/applications", status="400").inc()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "error_code": ErrorCode.DUPLICATE_PAN.value,
                 "message": str(e),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             },
-        )
+        ) from e
     except Exception as e:
         # Internal error
-        REQUESTS_TOTAL.labels(
-            method="POST", endpoint="/applications", status="500"
-        ).inc()
+        REQUESTS_TOTAL.labels(method="POST", endpoint="/applications", status="500").inc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={
                 "error_code": ErrorCode.INTERNAL_ERROR.value,
                 "message": "Failed to create application",
                 "detail": str(e),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             },
-        )
+        ) from e
 
 
 @app.get(
@@ -273,9 +267,7 @@ async def get_application_status(application_id: UUID) -> ApplicationStatusRespo
     service = get_application_service(db)
 
     try:
-        with REQUEST_DURATION.labels(
-            method="GET", endpoint="/applications/{id}/status"
-        ).time():
+        with REQUEST_DURATION.labels(method="GET", endpoint="/applications/{id}/status").time():
             response = service.get_application_status(application_id)
             REQUESTS_TOTAL.labels(
                 method="GET", endpoint="/applications/{id}/status", status="200"
@@ -292,9 +284,9 @@ async def get_application_status(application_id: UUID) -> ApplicationStatusRespo
             detail={
                 "error_code": ErrorCode.NOT_FOUND.value,
                 "message": str(e),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             },
-        )
+        ) from e
     except Exception as e:
         REQUESTS_TOTAL.labels(
             method="GET", endpoint="/applications/{id}/status", status="500"
@@ -305,9 +297,9 @@ async def get_application_status(application_id: UUID) -> ApplicationStatusRespo
                 "error_code": ErrorCode.INTERNAL_ERROR.value,
                 "message": "Failed to retrieve application status",
                 "detail": str(e),
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             },
-        )
+        ) from e
 
 
 @app.get(
@@ -321,7 +313,7 @@ async def health_check() -> HealthResponse:
 
     Returns 200 if service is alive (for Kubernetes liveness probe).
     """
-    return HealthResponse(status="healthy", timestamp=datetime.utcnow())
+    return HealthResponse(status="healthy", timestamp=datetime.now(tz=timezone.utc))
 
 
 @app.get(
@@ -364,7 +356,7 @@ async def readiness_check() -> ReadinessResponse:
                 "ready": False,
                 "database": db_status,
                 "kafka": kafka_status,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
             },
         )
 
@@ -372,7 +364,7 @@ async def readiness_check() -> ReadinessResponse:
         ready=True,
         database=db_status,
         kafka=kafka_status,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(tz=timezone.utc),
     )
 
 

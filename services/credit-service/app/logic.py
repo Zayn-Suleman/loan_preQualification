@@ -8,8 +8,8 @@ This module implements deterministic CIBIL score simulation based on:
 """
 import hashlib
 import random
-from typing import Dict, Any
-from uuid import UUID
+from datetime import datetime, timezone
+from typing import Any, Dict
 
 
 class CibilService:
@@ -20,6 +20,10 @@ class CibilService:
         "ABCDE1234F": 790,  # Good credit score
         "FGHIJ5678K": 610,  # Below threshold score
     }
+
+    # Income thresholds
+    HIGH_INCOME_THRESHOLD = 75000
+    LOW_INCOME_THRESHOLD = 30000
 
     @classmethod
     def calculate_score(cls, application_data: Dict[str, Any]) -> int:
@@ -63,9 +67,9 @@ class CibilService:
 
         # Income-based adjustments
         monthly_income = float(application_data.get("monthly_income_inr", 0))
-        if monthly_income > 75000:
+        if monthly_income > cls.HIGH_INCOME_THRESHOLD:
             score += 40
-        elif monthly_income < 30000:
+        elif monthly_income < cls.LOW_INCOME_THRESHOLD:
             score -= 20
 
         # Loan type adjustments
@@ -85,9 +89,7 @@ class CibilService:
         score += variation
 
         # Cap between 300-900 (CIBIL score range)
-        score = max(300, min(900, score))
-
-        return score
+        return max(300, min(900, score))
 
     @staticmethod
     def _generate_seed(application_id: str) -> int:
@@ -103,8 +105,7 @@ class CibilService:
         """
         # Hash the application_id and take first 8 bytes as integer
         hash_bytes = hashlib.sha256(application_id.encode()).digest()[:8]
-        seed = int.from_bytes(hash_bytes, byteorder="big")
-        return seed
+        return int.from_bytes(hash_bytes, byteorder="big")
 
     @classmethod
     def get_credit_report(cls, application_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -120,8 +121,6 @@ class CibilService:
                 - cibil_score
                 - credit_report_generated_at (timestamp)
         """
-        from datetime import datetime
-
         cibil_score = cls.calculate_score(application_data)
 
         return {
@@ -129,5 +128,5 @@ class CibilService:
             "pan_number": application_data.get("pan_number"),  # Will be re-encrypted for Kafka
             "applicant_name": application_data.get("applicant_name"),
             "cibil_score": cibil_score,
-            "credit_report_generated_at": datetime.utcnow().isoformat(),
+            "credit_report_generated_at": datetime.now(tz=timezone.utc).isoformat(),
         }

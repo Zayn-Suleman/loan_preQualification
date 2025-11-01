@@ -7,17 +7,33 @@ Tests the CibilService class to ensure:
 - Deterministic random seeding produces consistent results
 - Score capping works (300-900 range)
 """
-import pytest
-from uuid import uuid4
-
 import sys
 from pathlib import Path
+from uuid import uuid4
 
 # Add parent directories to path
 service_root = Path(__file__).parent.parent
 sys.path.insert(0, str(service_root))
 
 from app.logic import CibilService
+
+# Test constants
+EXPECTED_GOOD_SCORE = 790
+EXPECTED_BAD_SCORE = 610
+BASE_SCORE_LOWER = 645
+BASE_SCORE_UPPER = 655
+HIGH_INCOME_LOWER = 685
+HIGH_INCOME_UPPER = 695
+LOW_INCOME_LOWER = 625
+LOW_INCOME_UPPER = 635
+PERSONAL_LOAN_LOWER = 635
+PERSONAL_LOAN_UPPER = 645
+HOME_LOAN_LOWER = 655
+HOME_LOAN_UPPER = 665
+AUTO_LOAN_LOWER = 645
+AUTO_LOAN_UPPER = 655
+MIN_CIBIL = 300
+MAX_CIBIL = 900
 
 
 class TestCibilService:
@@ -30,11 +46,11 @@ class TestCibilService:
             "pan_number": "ABCDE1234F",
             "monthly_income_inr": 50000,
             "loan_amount_inr": 500000,
-            "loan_type": "PERSONAL"
+            "loan_type": "PERSONAL",
         }
 
         score = CibilService.calculate_score(application_data)
-        assert score == 790, f"Expected 790 for test PAN ABCDE1234F, got {score}"
+        assert score == EXPECTED_GOOD_SCORE, f"Expected 790 for test PAN ABCDE1234F, got {score}"
 
     def test_test_pan_mapping_below_threshold(self):
         """Test that test PAN FGHIJ5678K returns 610."""
@@ -43,11 +59,11 @@ class TestCibilService:
             "pan_number": "FGHIJ5678K",
             "monthly_income_inr": 50000,
             "loan_amount_inr": 500000,
-            "loan_type": "PERSONAL"
+            "loan_type": "PERSONAL",
         }
 
         score = CibilService.calculate_score(application_data)
-        assert score == 610, f"Expected 610 for test PAN FGHIJ5678K, got {score}"
+        assert score == EXPECTED_BAD_SCORE, f"Expected 610 for test PAN FGHIJ5678K, got {score}"
 
     def test_base_score_calculation(self):
         """Test base score calculation without adjustments."""
@@ -59,13 +75,13 @@ class TestCibilService:
             "pan_number": "ZZZZZ9999Z",  # Not a test PAN
             "monthly_income_inr": 50000,  # Between 30k-75k (no adjustment)
             "loan_amount_inr": 500000,
-            "loan_type": "AUTO"  # Neutral adjustment
+            "loan_type": "AUTO",  # Neutral adjustment
         }
 
         score = CibilService.calculate_score(application_data)
 
         # Base 650 + 0 (income) + 0 (loan type) + random(-5 to +5)
-        assert 645 <= score <= 655, f"Expected score between 645-655, got {score}"
+        assert 645 <= score <= BASE_SCORE_UPPER, f"Expected score between 645-655, got {score}"
 
     def test_high_income_adjustment(self):
         """Test that high income (>75000) adds +40 to score."""
@@ -76,13 +92,13 @@ class TestCibilService:
             "pan_number": "BBBBB8888B",
             "monthly_income_inr": 100000,  # High income
             "loan_amount_inr": 500000,
-            "loan_type": "AUTO"
+            "loan_type": "AUTO",
         }
 
         score = CibilService.calculate_score(application_data)
 
         # Base 650 + 40 (high income) + 0 (auto) + random(-5 to +5) = 685-695
-        assert 685 <= score <= 695, f"Expected score between 685-695, got {score}"
+        assert 685 <= score <= HIGH_INCOME_UPPER, f"Expected score between 685-695, got {score}"
 
     def test_low_income_adjustment(self):
         """Test that low income (<30000) subtracts -20 from score."""
@@ -93,13 +109,13 @@ class TestCibilService:
             "pan_number": "CCCCC7777C",
             "monthly_income_inr": 25000,  # Low income
             "loan_amount_inr": 200000,
-            "loan_type": "AUTO"
+            "loan_type": "AUTO",
         }
 
         score = CibilService.calculate_score(application_data)
 
         # Base 650 - 20 (low income) + 0 (auto) + random(-5 to +5) = 625-635
-        assert 625 <= score <= 635, f"Expected score between 625-635, got {score}"
+        assert 625 <= score <= LOW_INCOME_UPPER, f"Expected score between 625-635, got {score}"
 
     def test_personal_loan_adjustment(self):
         """Test that PERSONAL loan subtracts -10 from score."""
@@ -110,7 +126,7 @@ class TestCibilService:
             "pan_number": "DDDDD6666D",
             "monthly_income_inr": 50000,
             "loan_amount_inr": 300000,
-            "loan_type": "PERSONAL"
+            "loan_type": "PERSONAL",
         }
 
         score = CibilService.calculate_score(application_data)
@@ -127,7 +143,7 @@ class TestCibilService:
             "pan_number": "EEEEE5555E",
             "monthly_income_inr": 50000,
             "loan_amount_inr": 5000000,
-            "loan_type": "HOME"
+            "loan_type": "HOME",
         }
 
         score = CibilService.calculate_score(application_data)
@@ -144,7 +160,7 @@ class TestCibilService:
             "pan_number": "FFFFF4444F",
             "monthly_income_inr": 80000,  # High income (+40)
             "loan_amount_inr": 600000,
-            "loan_type": "PERSONAL"  # Personal loan (-10)
+            "loan_type": "PERSONAL",  # Personal loan (-10)
         }
 
         score = CibilService.calculate_score(application_data)
@@ -161,7 +177,7 @@ class TestCibilService:
             "pan_number": "GGGGG3333G",
             "monthly_income_inr": 28000,  # Low income (-20)
             "loan_amount_inr": 3000000,
-            "loan_type": "HOME"  # Home loan (+10)
+            "loan_type": "HOME",  # Home loan (+10)
         }
 
         score = CibilService.calculate_score(application_data)
@@ -178,13 +194,13 @@ class TestCibilService:
             "pan_number": "HHHHH2222H",
             "monthly_income_inr": 15000,  # Very low income
             "loan_amount_inr": 100000,
-            "loan_type": "PERSONAL"
+            "loan_type": "PERSONAL",
         }
 
         score = CibilService.calculate_score(application_data)
 
         # Should never go below 300
-        assert score >= 300, f"Score {score} is below minimum 300"
+        assert score >= MIN_CIBIL, f"Score {score} is below minimum 300"
 
     def test_score_capping_upper_bound(self):
         """Test that score is capped at maximum 900."""
@@ -195,13 +211,13 @@ class TestCibilService:
             "pan_number": "IIIII1111I",
             "monthly_income_inr": 500000,  # Very high income
             "loan_amount_inr": 10000000,
-            "loan_type": "HOME"
+            "loan_type": "HOME",
         }
 
         score = CibilService.calculate_score(application_data)
 
         # Should never exceed 900
-        assert score <= 900, f"Score {score} exceeds maximum 900"
+        assert score <= MAX_CIBIL, f"Score {score} exceeds maximum 900"
 
     def test_deterministic_seeding_same_application(self):
         """Test that same application_id always produces same score."""
@@ -212,7 +228,7 @@ class TestCibilService:
             "pan_number": "JJJJJ0000J",
             "monthly_income_inr": 60000,
             "loan_amount_inr": 800000,
-            "loan_type": "AUTO"
+            "loan_type": "AUTO",
         }
 
         # Calculate score multiple times
@@ -221,9 +237,7 @@ class TestCibilService:
         score3 = CibilService.calculate_score(application_data)
 
         # All should be identical (deterministic)
-        assert score1 == score2 == score3, (
-            f"Scores not deterministic: {score1}, {score2}, {score3}"
-        )
+        assert score1 == score2 == score3, f"Scores not deterministic: {score1}, {score2}, {score3}"
 
     def test_different_applications_different_scores(self):
         """Test that different application_ids can produce different scores."""
@@ -231,16 +245,13 @@ class TestCibilService:
             "pan_number": "KKKKK9999K",
             "monthly_income_inr": 55000,
             "loan_amount_inr": 500000,
-            "loan_type": "AUTO"
+            "loan_type": "AUTO",
         }
 
         # Create 10 applications with different IDs
         scores = []
         for i in range(10):
-            data = {
-                **base_data,
-                "application_id": f"00000000-0000-0000-0000-00000000000{i}"
-            }
+            data = {**base_data, "application_id": f"00000000-0000-0000-0000-00000000000{i}"}
             scores.append(CibilService.calculate_score(data))
 
         # Should have some variation due to random seed
@@ -255,7 +266,7 @@ class TestCibilService:
             "applicant_name": "Test User",
             "monthly_income_inr": 50000,
             "loan_amount_inr": 500000,
-            "loan_type": "PERSONAL"
+            "loan_type": "PERSONAL",
         }
 
         credit_report = CibilService.get_credit_report(application_data)

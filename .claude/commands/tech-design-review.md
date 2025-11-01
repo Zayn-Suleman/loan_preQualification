@@ -1,8 +1,8 @@
 Command name: tech-design-backend-review-python-fastapi
 
-Command usage: 
-/clear 
-/tech-design-backend-review-python-fastapi Requirements are in docs/requirements.md file. Tech design as tech-design.md file. Save the review comments in tech-design-review.md file 
+Command usage:
+/clear
+/tech-design-backend-review-python-fastapi Requirements are in docs/requirements.md file. Tech design as tech-design.md file. Save the review comments in tech-design-review.md file
 /cost
 
 Command details:

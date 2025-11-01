@@ -8,28 +8,27 @@ This module implements a reliable Kafka consumer that:
 """
 import json
 import logging
-from datetime import datetime
-from typing import Dict, Any, Optional
-from uuid import UUID
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict, Optional
 
-from confluent_kafka import Consumer, Producer, KafkaError, KafkaException, Message
+from confluent_kafka import Consumer, KafkaError, Message, Producer
 from pydantic_settings import BaseSettings
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import Session, sessionmaker
 
 # Add project root to path for imports
-import sys
-from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from services.shared.encryption import EncryptionService
+
 from .logic import CibilService
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -54,6 +53,7 @@ class Settings(BaseSettings):
 
     class Config:
         """Pydantic config."""
+
         env_file = ".env"
 
 
@@ -118,9 +118,8 @@ class CreditServiceConsumer:
                     if msg.error().code() == KafkaError._PARTITION_EOF:
                         # End of partition, not an error
                         continue
-                    else:
-                        logger.error(f"Kafka error: {msg.error()}")
-                        continue
+                    logger.error(f"Kafka error: {msg.error()}")
+                    continue
 
                 # Process message
                 self.process_message(msg)
@@ -241,17 +240,12 @@ class CreditServiceConsumer:
         """
         result = db.execute(
             text("SELECT 1 FROM processed_messages WHERE message_id = :message_id"),
-            {"message_id": message_id}
+            {"message_id": message_id},
         )
         return result.fetchone() is not None
 
     def mark_as_processed(
-        self,
-        db: Session,
-        message_id: str,
-        topic: str,
-        partition: int,
-        offset: int
+        self, db: Session, message_id: str, topic: str, partition: int, offset: int
     ):
         """Mark message as processed in database.
 
@@ -263,19 +257,21 @@ class CreditServiceConsumer:
             offset: Kafka message offset
         """
         db.execute(
-            text("""
+            text(
+                """
                 INSERT INTO processed_messages
                 (message_id, topic_name, partition_num, offset_num, consumer_group, processed_at)
                 VALUES (:message_id, :topic, :partition, :offset, :group, :timestamp)
-            """),
+            """
+            ),
             {
                 "message_id": message_id,
                 "topic": topic,
                 "partition": partition,
                 "offset": offset,
                 "group": self.settings.consumer_group_id,
-                "timestamp": datetime.utcnow()
-            }
+                "timestamp": datetime.now(tz=timezone.utc),
+            },
         )
         logger.debug(f"Marked message as processed: {message_id}")
 
@@ -297,13 +293,15 @@ class CreditServiceConsumer:
                 topic=self.settings.output_topic,
                 key=partition_key,
                 value=message_value,
-                callback=self._delivery_callback
+                callback=self._delivery_callback,
             )
 
             # Poll for delivery reports (non-blocking)
             self.producer.poll(0)
 
-            logger.info(f"Published credit report to {self.settings.output_topic} for application {credit_report['application_id']}")
+            logger.info(
+                f"Published credit report to {self.settings.output_topic} for application {credit_report['application_id']}"
+            )
 
         except Exception as e:
             logger.error(f"Failed to publish credit report: {e}", exc_info=True)
@@ -319,4 +317,6 @@ class CreditServiceConsumer:
         if err:
             logger.error(f"Message delivery failed: {err}")
         else:
-            logger.debug(f"Message delivered to {msg.topic()}[{msg.partition()}] at offset {msg.offset()}")
+            logger.debug(
+                f"Message delivered to {msg.topic()}[{msg.partition()}] at offset {msg.offset()}"
+            )

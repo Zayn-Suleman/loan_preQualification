@@ -20,11 +20,11 @@ import asyncio
 import json
 import logging
 import time
-from datetime import datetime, timedelta
-from typing import List, Optional
+from datetime import datetime, timezone
+from typing import Optional
 
-from confluent_kafka import KafkaError, KafkaException, Producer
-from sqlalchemy import select, update
+from confluent_kafka import KafkaException, Producer
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from .db import OutboxEvent
@@ -111,9 +111,7 @@ class CircuitBreaker:
             self.success_count = 0
         elif self.state == "CLOSED":
             if self.failure_count >= self.failure_threshold:
-                logger.error(
-                    f"Circuit breaker: CLOSED → OPEN ({self.failure_count} failures)"
-                )
+                logger.error(f"Circuit breaker: CLOSED → OPEN ({self.failure_count} failures)")
                 self.state = "OPEN"
 
 
@@ -221,9 +219,7 @@ class OutboxPublisher:
             for event in events:
                 try:
                     # Publish to Kafka with circuit breaker
-                    self.circuit_breaker.call(
-                        self._publish_event, db, event
-                    )
+                    self.circuit_breaker.call(self._publish_event, db, event)
                     self.total_published += 1
 
                 except KafkaException as e:
@@ -279,7 +275,7 @@ class OutboxPublisher:
 
             # Mark as published
             event.published = True
-            event.published_at = datetime.utcnow()
+            event.published_at = datetime.now(tz=timezone.utc)
             event.error_message = None
 
             logger.info(
