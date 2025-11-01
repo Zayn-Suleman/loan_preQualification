@@ -43,7 +43,7 @@ testpaths = ["services"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=services --cov-report=html --cov-report=term-missing"
+addopts = "-v --cov=services --cov-report=html --cov-report=term-missing --import-mode=importlib"
 asyncio_mode = "auto"
 
 [tool.coverage.run]
