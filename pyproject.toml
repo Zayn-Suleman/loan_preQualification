@@ -39,12 +39,17 @@ line-length = 100
 target-version = ['py310']
 
 [tool.pytest.ini_options]
-testpaths = ["services"]
+testpaths = ["services", "tests"]
 python_files = ["test_*.py", "*_test.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=services --cov-report=html --cov-report=term-missing --import-mode=importlib"
+addopts = "-v --cov=services --cov-report=html --cov-report=term-missing --import-mode=importlib -m 'not e2e'"
 asyncio_mode = "auto"
+markers = [
+    "e2e: End-to-end tests requiring docker-compose (deselected by default)",
+    "integration: Integration tests requiring external services",
+    "slow: Slow running tests"
+]
 
 [tool.coverage.run]
 omit = ["*/tests/*", "*/__init__.py", "*/migrations/*"]
