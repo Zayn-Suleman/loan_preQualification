@@ -87,9 +87,13 @@ jobs:
       run: |
         poetry run pytest services/decision-service/tests/test_logic.py -v
 
+    - name: Run API Validation Tests - Prequal API
+      run: |
+        poetry run pytest services/prequal-api/tests/test_api_simple.py -v
+
     - name: Generate Coverage Report
       run: |
-        poetry run pytest services/shared/tests/ services/credit-service/tests/ services/decision-service/tests/ --cov=services --cov-report=xml --cov-report=term-missing
+        poetry run pytest services/shared/tests/ services/credit-service/tests/ services/decision-service/tests/ services/prequal-api/tests/ --cov=services --cov-report=xml --cov-report=term-missing
 
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v3
