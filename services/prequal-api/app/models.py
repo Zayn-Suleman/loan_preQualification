@@ -12,7 +12,7 @@ from enum import Enum
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 # Constants
 MIN_AGE = 18
@@ -141,10 +141,8 @@ class ApplicationCreateRequest(BaseModel):
 
         return v
 
-    class Config:
-        """Pydantic config."""
-
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "pan_number": "ABCDE1234F",
                 "first_name": "Rajesh",
@@ -155,6 +153,7 @@ class ApplicationCreateRequest(BaseModel):
                 "requested_amount": 500000.00,
             }
         }
+    )
 
 
 class ApplicationCreateResponse(BaseModel):
@@ -174,10 +173,8 @@ class ApplicationCreateResponse(BaseModel):
     )
     created_at: datetime = Field(..., description="Timestamp of application creation")
 
-    class Config:
-        """Pydantic config."""
-
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "application_id": "123e4567-e89b-12d3-a456-426614174000",
                 "status": "PENDING",
@@ -185,6 +182,7 @@ class ApplicationCreateResponse(BaseModel):
                 "created_at": "2024-01-15T10:30:00Z",
             }
         }
+    )
 
 
 class ApplicationStatusResponse(BaseModel):
@@ -218,10 +216,8 @@ class ApplicationStatusResponse(BaseModel):
     created_at: datetime = Field(..., description="Timestamp of application creation")
     updated_at: datetime = Field(..., description="Timestamp of last update")
 
-    class Config:
-        """Pydantic config."""
-
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "application_id": "123e4567-e89b-12d3-a456-426614174000",
                 "status": "PRE_APPROVED",
@@ -238,6 +234,7 @@ class ApplicationStatusResponse(BaseModel):
                 "updated_at": "2024-01-15T10:31:00Z",
             }
         }
+    )
 
 
 class ErrorResponse(BaseModel):
@@ -248,10 +245,8 @@ class ErrorResponse(BaseModel):
     detail: Optional[str] = Field(None, description="Additional error details (for debugging)")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Error timestamp")
 
-    class Config:
-        """Pydantic config."""
-
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "error_code": "DUPLICATE_PAN",
                 "message": "An application with this PAN already exists",
@@ -259,6 +254,7 @@ class ErrorResponse(BaseModel):
                 "timestamp": "2024-01-15T10:30:00Z",
             }
         }
+    )
 
 
 class HealthResponse(BaseModel):
@@ -268,11 +264,17 @@ class HealthResponse(BaseModel):
     timestamp: datetime = Field(
         default_factory=datetime.utcnow, description="Health check timestamp"
     )
+    service: str = Field(default="prequal-api", description="Service name")
 
-    class Config:
-        """Pydantic config."""
-
-        json_schema_extra = {"example": {"status": "healthy", "timestamp": "2024-01-15T10:30:00Z"}}
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "status": "healthy",
+                "timestamp": "2024-01-15T10:30:00Z",
+                "service": "prequal-api",
+            }
+        }
+    )
 
 
 class ReadinessResponse(BaseModel):
@@ -285,10 +287,8 @@ class ReadinessResponse(BaseModel):
         default_factory=datetime.utcnow, description="Readiness check timestamp"
     )
 
-    class Config:
-        """Pydantic config."""
-
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "ready": True,
                 "database": "connected",
@@ -296,3 +296,4 @@ class ReadinessResponse(BaseModel):
                 "timestamp": "2024-01-15T10:30:00Z",
             }
         }
+    )

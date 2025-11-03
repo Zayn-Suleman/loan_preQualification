@@ -18,6 +18,7 @@ from uuid import UUID
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import PlainTextResponse
 from prometheus_client import Counter, Histogram, generate_latest
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
@@ -49,10 +50,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     kafka_bootstrap_servers: Optional[str] = "localhost:9092"  # For future use
 
-    class Config:
-        """Pydantic config."""
-
-        env_file = ".env"
+    model_config = ConfigDict(env_file=".env")
 
 
 # Global settings
