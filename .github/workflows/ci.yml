@@ -77,22 +77,28 @@ jobs:
 
     - name: Run Unit Tests - Encryption Service
       run: |
+        export PYTHONPATH="${PYTHONPATH}:${PWD}"
         poetry run pytest services/shared/tests/test_encryption.py -v
 
     - name: Run Unit Tests - Credit Service
       run: |
+        export PYTHONPATH="${PYTHONPATH}:${PWD}"
         poetry run pytest services/credit-service/tests/test_logic.py -v
 
     - name: Run Unit Tests - Decision Service
       run: |
+        export PYTHONPATH="${PYTHONPATH}:${PWD}"
         poetry run pytest services/decision-service/tests/test_logic.py -v
 
     - name: Run API Validation Tests - Prequal API
       run: |
+        export PYTHONPATH="${PYTHONPATH}:${PWD}"
         poetry run pytest services/prequal-api/tests/test_api_simple.py -v
 
     - name: Generate Coverage Report
       run: |
+        # Set PYTHONPATH to project root for imports
+        export PYTHONPATH="${PYTHONPATH}:${PWD}"
         # Run tests per service to avoid import path collisions
         poetry run pytest services/shared/tests/ --cov=services/shared --cov-append --cov-report=
         poetry run pytest services/credit-service/tests/ --cov=services/credit-service --cov-append --cov-report=
