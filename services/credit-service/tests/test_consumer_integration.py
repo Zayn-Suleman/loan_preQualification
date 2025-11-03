@@ -26,8 +26,8 @@ class TestCreditServiceIntegration:
 
     def test_cibil_calculation_with_encryption_roundtrip(self):
         """Test CIBIL calculation with PAN encryption/decryption."""
-        # Setup encryption service
-        encryption_key = "test_encryption_key_32_bytes!!"
+        # Setup encryption service (32 bytes = 256 bits)
+        encryption_key = "test_encryption_key_32bytes_!!"
         encryption_service = EncryptionService(encryption_key)
 
         # Original PAN
@@ -71,7 +71,7 @@ class TestCreditServiceIntegration:
 
     def test_poor_credit_score_with_encryption(self):
         """Test poor credit score calculation with encryption."""
-        encryption_key = "test_encryption_key_32_bytes!!"
+        encryption_key = "test_encryption_key_32bytes_!!"
         encryption_service = EncryptionService(encryption_key)
 
         # Poor credit test PAN
@@ -94,7 +94,7 @@ class TestCreditServiceIntegration:
 
     def test_deterministic_scoring_with_same_application_id(self):
         """Test that same application_id produces same CIBIL score."""
-        encryption_key = "test_encryption_key_32_bytes!!"
+        encryption_key = "test_encryption_key_32bytes_!!"
         encryption_service = EncryptionService(encryption_key)
 
         original_pan = "XYZAB9999C"
@@ -143,7 +143,7 @@ class TestCreditServiceIntegration:
 
     def test_missing_fields_handling(self):
         """Test handling of message with missing optional fields."""
-        encryption_key = "test_encryption_key_32_bytes!!"
+        encryption_key = "test_encryption_key_32bytes_!!"
         encryption_service = EncryptionService(encryption_key)
 
         original_pan = "ABCDE1234F"
@@ -167,7 +167,7 @@ class TestCreditServiceIntegration:
 
     def test_encryption_decryption_failure_handling(self):
         """Test handling of invalid encrypted data."""
-        encryption_key = "test_encryption_key_32_bytes!!"
+        encryption_key = "test_encryption_key_32bytes_!!"
         encryption_service = EncryptionService(encryption_key)
 
         # Invalid base64 encrypted data
